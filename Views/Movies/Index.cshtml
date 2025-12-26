@@ -1,0 +1,183 @@
+﻿@using CinemaManagement.ViewModel
+@model TheaterMoviesViewModel
+@{
+    ViewData["Title"] = "Trang chủ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var topRatedMovies = ViewBag.TopRatedMovies as List<CinemaManagement.Models.Movie> ?? new();
+}
+<!-- Import font hiện đại -->
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+
+<div class="d-flex justify-content-center align-items-center py-5 position-relative" style="background: linear-gradient(145deg, #000000, #1a0000); border-top: 4px solid #ff0033; font-family: 'Bebas Neue', sans-serif;">
+    <div class="container text-center text-light">
+        <h2 class="display-5 text-uppercase mb-5" style="color: #ff0033; letter-spacing: 2px; text-shadow: 2px 2px 8px #000;">
+            🎬 @((Model.IsFiltered && !string.IsNullOrWhiteSpace(Model.TheaterName)) ? $"Phim Đang Chiếu tại {Model.TheaterName}" : "Phim Đang Chiếu")
+        </h2>
+
+        <!-- Top Rated Movies Carousel -->
+        @if (topRatedMovies != null && topRatedMovies.Any())
+        {
+            <div id="topRatedMoviesCarousel" class="carousel slide shadow-lg border border-danger rounded-4 overflow-hidden" data-bs-ride="carousel" data-bs-interval="5000" style="max-width: 1000px; margin: auto;">
+                <div class="carousel-inner">
+                    @for (int i = 0; i < topRatedMovies.Count; i++)
+                    {
+                        var movie = topRatedMovies[i];
+                        <div class="carousel-item @(i == 0 ? "active" : "") position-relative">
+                            <img src="@movie.PosterUrl"
+                                 class="d-block w-100"
+                                 alt="@movie.Title"
+                                 style="height: 500px; object-fit: cover; filter: brightness(70%);">
+                            <div class="carousel-caption d-none d-md-block">
+                                <h4 class="bg-black bg-opacity-75 d-inline-block px-4 py-2 rounded-3"
+                                    style="color: #ffcccb; font-size: 1.8rem; text-shadow: 1px 1px 4px #000;">
+                                    @movie.Title – ⭐ @movie.Rating
+                                </h4>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Điều khiển -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#topRatedMoviesCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon bg-danger rounded-circle p-2" aria-hidden="true"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#topRatedMoviesCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon bg-danger rounded-circle p-2" aria-hidden="true"></span>
+                </button>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mt-4">Không có phim nào được đánh giá cao.</p>
+        }
+    </div>
+</div>
+
+<!-- Bộ lọc sắp xếp -->
+<div class="d-flex justify-content-end mb-3 px-3">
+    <form method="get" class="d-flex align-items-center" id="filterForm">
+        @if (Context.Request.Query.ContainsKey("searchQuery"))
+        {
+            <input type="hidden" name="searchQuery" value="@Context.Request.Query["searchQuery"]" id="voiceSearchInput" />
+        }
+        @if (Context.Request.Query.ContainsKey("theaterId"))
+        {
+            <input type="hidden" name="theaterId" value="@Context.Request.Query["theaterId"]" />
+        }
+
+        <!-- Lọc theo giờ -->
+        <label class="me-2 fw-bold text-dark" for="time">Giờ chiếu:</label>
+        <select class="form-select me-2" name="time" id="time">
+            <option value="">-- Tất cả --</option>
+            @foreach (var hour in ViewBag.ShowtimeHours as List<int>)
+            {
+                <option value="@hour">@hour:00</option>
+            }
+        </select>
+
+        <!-- Sắp xếp -->
+        <label class="me-2 fw-bold text-dark" for="sortBy">Sắp xếp:</label>
+        <select class="form-select" id="sortBy" name="sortBy" onchange="this.form.submit()">
+            <option value="">-- Chọn --</option>
+            <option value="title_asc" selected="@(Context.Request.Query["sortBy"] == "title_asc")">Từ A → Z</option>
+            <option value="title_desc" selected="@(Context.Request.Query["sortBy"] == "title_desc")">Từ Z → A</option>
+            <option value="rating_desc" selected="@(Context.Request.Query["sortBy"] == "rating_desc")">Rating cao → thấp</option>
+            <option value="rating_asc" selected="@(Context.Request.Query["sortBy"] == "rating_asc")">Rating thấp → cao</option>
+        </select>
+    </form>
+</div>
+
+<!-- Danh sách phim -->
+<h2 class="text-center my-4 text-dark fw-bold">🎥 MOVIE SELECTION</h2>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="moviesContainer">
+    @await Html.PartialAsync("_MovieCardsPartial", Model.Movies)
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            function loadMovies() {
+                var searchQuery = $('#voiceSearchInput').val();
+                var sortBy = $('#sortBy').val();
+                var theaterId = $('input[name="theaterId"]').val();
+                var time = $('#time').val();
+
+                $.ajax({
+                    url: '@Url.Action("FilterAjax", "Movies")',
+                    type: 'GET',
+                    data: { searchQuery: searchQuery, sortBy: sortBy, theaterId: theaterId, time: time },
+                    success: function (data) {
+                        $('#moviesContainer').html(data);
+                    },
+                    error: function () {
+                        alert('Có lỗi khi tải phim!');
+                    }
+                });
+            }
+
+            // Trigger AJAX khi thay đổi input / select
+            $('#sortBy, #voiceSearchInput, #time').on('change keyup', loadMovies);
+        });
+    </script>
+}
+
+<style>
+    .card:hover img {
+        transform: scale(1.05);
+    }
+
+    .carousel img {
+        height: 500px;
+        object-fit: cover;
+    }
+
+    .neon-text {
+        color: #ff0033;
+        text-shadow: 0 0 5px #ff0033, 0 0 10px #ff0033, 0 0 20px #ff0033, 0 0 40px #ff1a4d;
+        letter-spacing: 2px;
+        animation: neon-glow 2s infinite alternate;
+    }
+
+    .neon-caption {
+        font-size: 2rem;
+        color: #ffcccc;
+        text-shadow: 0 0 5px #ff4d4d, 0 0 10px #ff1a1a;
+        animation: fadeInUp 1s ease-out;
+    }
+
+    @@keyframes neon-glow {
+        from {
+            text-shadow: 0 0 5px #ff0033, 0 0 10px #ff0033, 0 0 15px #ff0033, 0 0 20px #ff1a4d;
+        }
+
+        to {
+            text-shadow: 0 0 10px #ff1a4d, 0 0 20px #ff1a4d, 0 0 30px #ff3366, 0 0 40px #ff4d88;
+        }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .carousel-item img {
+        width: 100vw;
+        max-width: 100%;
+        transition: transform 0.5s ease;
+    }
+
+    .carousel-item:hover img {
+        transform: scale(1.02);
+    }
+
+    .carousel-control-prev-icon, .carousel-control-next-icon {
+        background-size: 100% 100%;
+    }
+</style>

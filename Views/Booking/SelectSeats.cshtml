@@ -1,0 +1,273 @@
+﻿@model CinemaManagement.ViewModels.SeatSelectionViewModel
+@using Microsoft.AspNetCore.Identity
+
+<div class="container mt-5">
+    <div class="d-flex gap-4">
+        <div style="flex:1;" class="text-center">
+            <img src="@Model.Movie.PosterUrl" alt="Poster" class="img-fluid rounded shadow" style="max-height:500px">
+        </div>
+        <div style="flex:2;">
+            <h2 class="text-light text-center mb-3">🎬 Chọn Ghế</h2>
+            <p class="text-light fw-bold">🎞 Phòng: <span class="text-warning">@Model.Room.Name</span></p>
+            <p class="text-light fw-bold">🎞 Phim: <span class="text-warning">@Model.Movie.Title</span></p>
+            <p class="text-light fw-bold">🕐 Thời gian: <span class="text-warning">@Model.Showtime.StartTime</span></p>
+            <p class="text-light fw-bold">
+                💰 Giá: <span class="text-warning">@Model.Price.ToString("#,##0")</span> VND / ghế
+            </p>
+
+            <div class="seat-layout mt-4">
+                <div class="screen">MÀN HÌNH</div>
+                @{
+                    int seatsPerRow = 8;
+                    int totalSeats = Model.AvailableSeats.Count;
+                    int rows = (int)Math.Ceiling((double)totalSeats / seatsPerRow);
+                }
+                @for (int r = 0; r < rows; r++)
+                {
+                    <div class="d-flex justify-content-center mb-2 gap-2">
+                        @for (int c = 0; c < seatsPerRow; c++)
+                        {
+                            int idx = r * seatsPerRow + c;
+                            if (idx >= totalSeats) break;
+                            var seat = Model.AvailableSeats[idx];
+                            bool booked = seat.IsBooked || Model.PaidSeatIds.Contains(seat.SeatId) || Model.ReservedSeatIds.Contains(seat.SeatId);
+                            <button type="button" class="seat @(booked ? "seat-booked" : "seat-row")" data-seatid="@seat.SeatId" @(booked ? "disabled" : "")>@seat.SeatNumber</button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="text-center mt-3">
+                <p class="text-light fw-bold">🧾 Tổng tiền: <span id="totalPrice" class="text-warning">0</span> VND</p>
+                <button id="confirmBooking" class="btn btn-primary" disabled>✅ Xác nhận vé</button>
+
+                <div id="paymentSection" class="hidden mt-4">
+                    <button id="momoPaymentBtn" class="btn btn-danger me-2">💳 Thanh toán Momo</button>
+
+                    @* Chỉ Employee mới thấy nút tiền mặt *@
+                    @if (User.IsInRole("Employee"))
+                    {
+                        <button id="cashPaymentBtn" class="btn btn-success">💵 Thanh toán tiền mặt</button>
+                        <button id="confirmCashBtn" class="btn btn-primary hidden mt-2">✅ Xác nhận đã thanh toán thành công</button>
+                    }
+
+                    <div id="loading" class="hidden mt-2 text-warning">⏳ Đang xử lý...</div>
+                    <div id="messageBox" class="hidden alert mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const showtimeId = @Model.ShowtimeId;
+        let selectedSeats = [];
+        const finalPrice = @Model.Price;
+        let orderId = null;
+        let tempLockTime = 30; // 30 giây tạm khóa
+
+        function updatePaidSeats(){
+            fetch(`/Booking/GetPaidSeats?showtimeId=${showtimeId}`)
+                .then(r => r.json())
+                .then(data => {
+                    document.querySelectorAll(".seat").forEach(btn => {
+                        const id = parseInt(btn.getAttribute("data-seatid"));
+                        const paid = data.paidSeats.find(s => s.SeatId === id);
+                        if(paid){
+                            btn.classList.add("seat-booked");
+                            btn.disabled = true;
+                            if(paid.PaymentMethod === "Momo") btn.style.background="#ff1493";
+                            else if(paid.PaymentMethod === "Cash") btn.style.background="#28a745";
+                        }
+                    });
+                });
+        }
+        updatePaidSeats();
+
+        // Chọn ghế
+        document.querySelectorAll(".seat").forEach(btn => {
+            if(!btn.disabled){
+                btn.addEventListener("click", () => {
+                    const id = parseInt(btn.getAttribute("data-seatid"));
+                    if(selectedSeats.includes(id)){
+                        selectedSeats = selectedSeats.filter(x => x !== id);
+                        btn.classList.remove("seat-selected");
+                    } else {
+                        selectedSeats.push(id);
+                        btn.classList.add("seat-selected");
+                    }
+                    document.getElementById("totalPrice").textContent = (selectedSeats.length * finalPrice).toLocaleString();
+                    document.getElementById("confirmBooking").disabled = selectedSeats.length === 0;
+                });
+            }
+        });
+
+        // Xác nhận vé tạm khóa ghế
+        document.getElementById("confirmBooking").addEventListener("click", async () => {
+            document.getElementById("paymentSection").classList.remove("hidden");
+            if(!orderId){
+                const res = await fetch('/Booking/ConfirmBooking', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({showtimeId, seatIds: selectedSeats})
+                });
+                const data = await res.json();
+                if(!data.success) return showMessage("❌ " + data.error, "error");
+                orderId = data.orderId;
+
+                // Tạm khóa ghế 30 giây
+                setTimeout(() => {
+                    selectedSeats.forEach(id => {
+                        const btn = document.querySelector(`.seat[data-seatid='${id}']`);
+                        if(btn) btn.classList.remove("seat-selected");
+                    });
+                    selectedSeats = [];
+                    document.getElementById("totalPrice").textContent = "0";
+                    orderId = null; // hết thời gian tạm khóa
+                }, tempLockTime * 1000);
+            }
+        });
+
+        // Thanh toán Momo
+        document.getElementById("momoPaymentBtn").addEventListener("click", async () => {
+            const btn = document.getElementById("momoPaymentBtn");
+            btn.disabled = true;
+            document.getElementById("loading").classList.remove("hidden");
+
+            try {
+                if(!orderId) throw new Error("Vui lòng xác nhận vé trước.");
+                const qrRes = await fetch('/Booking/GetMomoQRCode', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({orderId, amount: selectedSeats.length * finalPrice})
+                });
+                const qrData = await qrRes.json();
+                if(!qrData.success) throw new Error('Không lấy được QR');
+                window.location.href = qrData.qrUrl;
+            } catch(e){
+                showMessage("❌ " + e.message, "error");
+            } finally {
+                btn.disabled = false;
+                document.getElementById("loading").classList.add("hidden");
+            }
+        });
+
+        // Thanh toán tiền mặt (Employee)
+        const cashBtn = document.getElementById("cashPaymentBtn");
+        const confirmCashBtn = document.getElementById("confirmCashBtn");
+
+        if(cashBtn){
+            // Bước 1: Hiển thị nút xác nhận khi click vào Cash
+            cashBtn.addEventListener("click", () => {
+                confirmCashBtn.classList.remove("hidden"); // Hiện nút xác nhận
+                cashBtn.disabled = true; // Disable nút thanh toán tiền mặt ban đầu
+            });
+
+            // Bước 2: Khi nhấn xác nhận, gọi API thanh toán tiền mặt
+            confirmCashBtn.addEventListener("click", async () => {
+                const btn = confirmCashBtn;
+                btn.disabled = true;
+                document.getElementById("loading").classList.remove("hidden");
+
+                try {
+                    if(!orderId) throw new Error("Vui lòng xác nhận vé trước.");
+
+                    const res = await fetch('/Booking/CashPayment', {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({orderId})
+                    });
+                    const data = await res.json();
+                    if(!data.success) throw new Error(data.error);
+
+                    showMessage("💵 Thanh toán tiền mặt thành công!", "success");
+                    updatePaidSeats();
+                    selectedSeats = [];
+                    document.getElementById("totalPrice").textContent = "0";
+
+                    btn.classList.add("hidden"); // Ẩn nút xác nhận sau khi thanh toán
+                } catch(e){
+                    showMessage("❌ " + e.message, "error");
+                } finally {
+                    btn.disabled = false;
+                    document.getElementById("loading").classList.add("hidden");
+                }
+            });
+        }
+
+        function showMessage(msg,type){
+            const box = document.getElementById("messageBox");
+            box.textContent = msg;
+            box.className = `alert alert-${type==="error"?"danger":"success"}`;
+            box.classList.remove("hidden");
+            setTimeout(()=>box.classList.add("hidden"),3000);
+        }
+    </script>
+
+}
+
+<style>
+    body {
+        background: #222;
+    }
+
+    .seat-layout {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        max-width: 600px;
+        margin: auto;
+    }
+
+    .screen {
+        width: 100%;
+        padding: 10px;
+        background: #fff;
+        color: #000;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .seat {
+        width: 50px;
+        height: 50px;
+        border: none;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform .2s;
+    }
+
+    .seat-row-even {
+        background: purple;
+        color: #fff;
+    }
+
+    .seat-row-odd {
+        background: red;
+        color: #fff;
+    }
+
+    .seat-booked {
+        background: #808080;
+        color: #fff;
+        cursor: not-allowed;
+        opacity: .6;
+    }
+
+    .seat-selected {
+        background: #ff1493 !important;
+        color: #fff;
+    }
+
+    .seat:hover:not(.seat-booked):not(.seat-selected) {
+        transform: scale(1.1);
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>

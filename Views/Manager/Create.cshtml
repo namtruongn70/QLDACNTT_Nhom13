@@ -1,0 +1,175 @@
+﻿@model CinemaManagement.ViewModel.MovieFormViewModel
+@{
+    ViewData["Title"] = "Thêm phim mới";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+    .form-wrapper {
+        max-width: 600px;
+        margin: 50px auto;
+    }
+
+    .custom-card {
+        background-color: #1c1c1c;
+        color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+    }
+
+    .custom-header {
+        background-color: #000;
+        padding: 20px;
+        text-align: center;
+        border-radius: 10px 10px 0 0;
+    }
+
+        .custom-header h3 {
+            color: #ff4d4d;
+            margin: 0;
+        }
+
+    .form-label {
+        color: #ff4d4d;
+        font-weight: bold;
+    }
+
+    .form-control {
+        background-color: #2c2c2c;
+        color: white;
+        border: 1px solid #ff4d4d;
+    }
+
+        .form-control::placeholder {
+            color: #bbbbbb;
+        }
+
+    .btn-red {
+        background-color: #ff4d4d;
+        color: #fff;
+        border: none;
+    }
+
+        .btn-red:hover {
+            background-color: #e60000;
+        }
+
+    .btn-outline-light {
+        border: 1px solid #fff;
+        color: #fff;
+    }
+
+        .btn-outline-light:hover {
+            background-color: #fff;
+            color: #000;
+        }
+
+    .text-danger {
+        color: #ff6666 !important;
+    }
+
+    .form-check-input {
+        background-color: #2c2c2c;
+        border: 1px solid #ff4d4d;
+    }
+
+        .form-check-input:checked {
+            background-color: #ff4d4d;
+            border-color: #ff4d4d;
+        }
+
+        .form-check-input:focus {
+            box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.3);
+        }
+</style>
+
+<div class="form-wrapper">
+    <div class="custom-card">
+        <div class="custom-header">
+            <h3><i class="bi bi-plus-circle"></i> Thêm phim mới</h3>
+        </div>
+        <div class="p-4">
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.Values.SelectMany(v => v.Errors).Any())
+            {
+                <div class="alert alert-danger">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <p>@error.ErrorMessage</p>
+                    }
+                </div>
+            }
+
+            <form asp-action="Create" method="post">
+                <div class="mb-3">
+                    <label asp-for="Movie.Title" class="form-label">🎬 Tên phim</label>
+                    <input asp-for="Movie.Title" class="form-control" placeholder="Nhập tên phim..." />
+                    <span asp-validation-for="Movie.Title" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Movie.Description" class="form-label">📝 Mô tả phim</label>
+                    <textarea asp-for="Movie.Description" class="form-control" placeholder="Nhập mô tả phim..." rows="4"></textarea>
+                    <span asp-validation-for="Movie.Description" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Movie.Duration" class="form-label">⏱ Thời lượng (phút)</label>
+                    <input asp-for="Movie.Duration" class="form-control" placeholder="Nhập thời lượng..." />
+                    <span asp-validation-for="Movie.Duration" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Movie.PosterUrl" class="form-label">🖼 URL Poster</label>
+                    <input asp-for="Movie.PosterUrl" class="form-control" placeholder="Nhập URL poster..." />
+                    <span asp-validation-for="Movie.PosterUrl" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Movie.VideoUrl" class="form-label">🎥 URL Video</label>
+                    <input asp-for="Movie.VideoUrl" class="form-control" placeholder="Nhập URL video..." />
+                    <span asp-validation-for="Movie.VideoUrl" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Movie.ReleaseDate" class="form-label">📅 Ngày phát hành</label>
+                    <input asp-for="Movie.ReleaseDate" class="form-control" type="date" />
+                    <span asp-validation-for="Movie.ReleaseDate" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="StartTime" class="form-label">🕒 Thời gian chiếu</label>
+                    <input asp-for="StartTime" class="form-control" type="datetime-local" value="@Model.StartTime?.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="StartTime" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">🎭 Thể loại</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach (var genre in Model.Genres)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="SelectedGenres" value="@genre.GenreId"
+                                @(Model.SelectedGenres.Contains(genre.GenreId) ? "checked" : "") />
+                                <label class="form-check-label" style="color: #fff;">@genre.Name</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-red px-4">
+                        <i class="bi bi-save"></i> Lưu
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-light px-4">
+                        <i class="bi bi-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

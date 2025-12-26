@@ -1,0 +1,189 @@
+﻿@model CinemaManagement.Models.Movie
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row align-items-start">
+        <!-- Poster và thông tin phim (col-md-4) -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 d-flex flex-column">
+                <!-- Phần poster cố định cao 400px -->
+                <div class="rounded-top overflow-hidden" style="height: 400px;">
+                    <img src="@Model.PosterUrl"
+                         class="w-100 h-100 object-fit-cover"
+                         alt="@Model.Title" />
+                </div>
+                <div class="card-body flex-grow-1 d-flex flex-column">
+                    <h4 class="card-title text-center fw-bold">🎬 @Model.Title</h4>
+
+                    <p class="text-muted text-center mb-2">
+                        <strong>Thể loại:</strong><br />
+                        @if (Model.MovieGenres != null && Model.MovieGenres.Any())
+                        {
+                            foreach (var genre in Model.MovieGenres)
+                            {
+                                <span class="badge bg-dark me-1">@genre.Genre.Name</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-danger">Chưa có thể loại</span>
+                        }
+                    </p>
+
+                    <p class="text-warning text-center fs-5">⭐ @Model.Rating / 10</p>
+
+                    <div class="text-center mt-auto">
+                        <form method="post" asp-action="RateMovie" asp-controller="Movies">
+                            <input type="hidden" name="movieId" value="@Model.MovieId" />
+                            <input type="hidden" id="selectedRating" name="rating" value="0" />
+
+                            <div class="star-rating justify-content-center mb-2" id="starRating">
+                                @for (int i = 1; i <= 10; i++)
+                                {
+                                    <span class="star" data-value="@i">&#9733;</span>
+                                }
+                            </div>
+
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Gửi đánh giá</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trailer và mô tả (col-md-8) -->
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100 d-flex flex-column">
+                <!-- Phần trailer cố định cao 400px -->
+                <div class="rounded-top overflow-hidden" style="height: 400px;">
+                    <iframe src="@Model.EmbedVideoUrl"
+                            title="Trailer"
+                            allowfullscreen
+                            style="width: 100%; height: 100%; border: none; object-fit: cover;">
+                    </iframe>
+                </div>
+                <div class="card-body flex-grow-1 d-flex flex-column">
+                    <h5 class="fw-bold">📝 Mô tả</h5>
+                    <p class="lead">@Model.Description</p>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-md-12 text-center">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-lg px-4 py-2 rounded-pill shadow-sm" style="background-color: #ffccd5; color: #660033;">
+                        Về Trang Chủ
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Suất chiếu -->
+    @if (Model.Showtimes != null && Model.Showtimes.Any())
+    {
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <h4 class="mb-3">📅 Chọn suất chiếu</h4>
+                <ul class="list-group shadow-sm">
+                    @foreach (var show in Model.Showtimes.OrderBy(s => s.StartTime))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                🏢 <strong>@show.Room.Theater.Name</strong> &raquo;
+                                Phòng: <strong>@show.Room.Name</strong><br />
+                                📅 @show.StartTime.ToString("dd/MM/yyyy") -
+                                ⏰ @show.StartTime.ToString("HH:mm")
+                            </div>
+                            @if (!User.IsInRole("Admin"))
+                            {
+                                <a asp-controller="Booking"
+                                   asp-action="SelectSeats"
+                                   asp-route-showtimeId="@show.ShowtimeId"
+                                   class="btn btn-danger btn-sm">
+                                    🎟️ Đặt vé
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Admin không thể đặt vé</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <p class="text-muted">Hiện chưa có suất chiếu cho phim này.</p>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- CSS đánh giá sao và style bổ sung -->
+<style>
+    .star-rating {
+        display: inline-flex;
+        font-size: 2rem;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .star {
+        color: #ccc;
+        transition: color 0.2s;
+    }
+
+        .star.selected,
+        .star.hovered {
+            color: gold;
+        }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+    /* Style cho nút "Đặt vé" màu đỏ - đen */
+    .btn-danger {
+        background-color: #d32f2f;
+        border-color: #b71c1c;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background-color: #b71c1c;
+            border-color: #7f0000;
+        }
+</style>
+
+<!-- JS đánh giá sao -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const stars = document.querySelectorAll("#starRating .star");
+        const ratingInput = document.getElementById("selectedRating");
+
+        stars.forEach((star, index) => {
+            star.addEventListener("click", () => {
+                const selectedValue = index + 1;
+                ratingInput.value = selectedValue;
+                stars.forEach((s, i) => {
+                    s.classList.toggle("selected", i < selectedValue);
+                });
+            });
+            star.addEventListener("mouseover", () => {
+                const hoverValue = index + 1;
+                stars.forEach((s, i) => {
+                    s.classList.toggle("hovered", i < hoverValue);
+                });
+            });
+            star.addEventListener("mouseout", () => {
+                stars.forEach(s => s.classList.remove("hovered"));
+            });
+        });
+    });
+</script>

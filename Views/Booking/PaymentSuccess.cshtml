@@ -1,0 +1,83 @@
+﻿@using CinemaManagement.ViewModels
+@model PaymentSuccessViewModel
+
+@{
+    ViewData["Title"] = "Thanh toán thành công";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="shadow p-5 bg-white rounded text-center">
+
+        <h2 class="text-success fw-bold">🎉 Thanh toán thành công!</h2>
+        <p class="lead">Dưới đây là thông tin vé của bạn:</p>
+
+        <hr />
+
+        @if (!string.IsNullOrEmpty(Model.QrCodeBase64))
+        {
+            <h4 class="fw-bold mb-3">📱 Mã QR vé</h4>
+            <img src="data:image/png;base64,@Model.QrCodeBase64"
+                 class="img-fluid mb-4" style="max-width:250px" />
+        }
+
+        <h4 class="fw-bold">🎫 Chi tiết vé</h4>
+
+        @if (Model.Tickets != null && Model.Tickets.Any())
+        {
+            @foreach (var ticket in Model.Tickets)
+            {
+                <div class="text-start my-3 p-3 border rounded bg-light">
+                    <p><strong>Phim:</strong> @ticket.Showtime?.Movie?.Title </p>
+                    <p><strong>Rạp:</strong> @ticket.Seat?.Room?.Theater?.Name </p>
+                    <p><strong>Phòng:</strong> @ticket.Seat?.Room?.Name </p>
+                    <p><strong>Ghế:</strong> @ticket.Seat?.SeatNumber </p>
+                    <p><strong>Ngày chiếu:</strong> @(ticket.Showtime?.StartTime.ToString("dd/MM/yyyy") )</p>
+                    <p><strong>Giờ chiếu:</strong> @(ticket.Showtime?.StartTime.ToString("HH:mm"))</p>
+                    <p><strong>Người mua:</strong> @ticket.User?.FullName </p>
+                    <p><strong>Giá vé:</strong> @ticket.Price.ToString("#,##0")</p>
+                </div>
+            }
+        }
+        else
+        {
+            <p>Không tìm thấy vé.</p>
+        }
+
+        <a href="/" class="btn btn-primary mt-4 px-4 py-2 rounded-pill">⏪ Quay lại trang chủ</a>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <style>
+        .success-box {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0f7fa, #f3e5f5);
+        }
+
+        .success-icon {
+            animation: pop 0.5s ease-in-out;
+        }
+
+        @@keyframes pop {
+            0%
+
+        {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        }
+    </style>
+}

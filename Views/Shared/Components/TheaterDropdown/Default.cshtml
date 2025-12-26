@@ -1,0 +1,12 @@
+﻿@model List<CinemaManagement.Models.Theater>
+
+<ul class="dropdown-menu" aria-labelledby="cinemaDropdown">
+    @foreach (var theater in Model)
+    {
+        <li>
+            <a class="dropdown-item" asp-controller="Movies" asp-action="Index" asp-route-theaterId="@theater.TheaterId">
+                @theater.Name
+            </a>
+        </li>
+    }
+</ul>

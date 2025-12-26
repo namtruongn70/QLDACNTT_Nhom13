@@ -1,0 +1,24 @@
+﻿@model CinemaManagement.Models.Movie
+@{
+    ViewData["Title"] = "Chi tiết phim";
+}
+<h2>🎬 Chi tiết phim</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <img src="@Model.PosterUrl" class="img-fluid rounded shadow" alt="@Model.Title" />
+    </div>
+    <div class="col-md-8">
+        <h3>@Model.Title</h3>
+        <p><strong>Mô tả:</strong> @Model.Description</p>
+        <p><strong>Thời lượng:</strong> @Model.Duration phút</p>
+        <p><strong>Ngày phát hành:</strong> @Model.ReleaseDate.ToShortDateString()</p>
+        <p><strong>Thể loại:</strong> @string.Join(", ", Model.MovieGenres.Select(mg => mg.Genre.Name))</p>
+        <p>
+            <strong>Trailer:</strong><br />
+            <iframe width="100%" height="315" src="@Model.EmbedVideoUrl" frameborder="0" allowfullscreen></iframe>
+        </p>
+        <a asp-action="Edit" asp-route-id="@Model.MovieId" class="btn btn-warning">✏️ Chỉnh sửa</a>
+        <a asp-action="Index" class="btn btn-secondary">🔙 Quay lại</a>
+    </div>
+</div>

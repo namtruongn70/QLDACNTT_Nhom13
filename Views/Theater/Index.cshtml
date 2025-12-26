@@ -1,0 +1,100 @@
+﻿@model IEnumerable<CinemaManagement.Models.Theater>
+@{
+    ViewData["Title"] = "Danh sách rạp chiếu";
+}
+<h2 class="text-center mb-4">🏢 Danh sách rạp chiếu</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">➕ Thêm rạp mới</a>
+</p>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Tên rạp</th>
+            <th>Địa điểm</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Location</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.TheaterId" class="btn btn-warning btn-sm">✏️ Sửa</a>
+                    <a asp-action="Details" asp-route-id="@item.TheaterId" class="btn btn-info btn-sm">👁 Xem</a>
+                    <a asp-action="CreateRoom" asp-route-theaterId="@item.TheaterId" class="btn btn-sm btn-pink-light">
+                        ➕ Thêm Phòng
+                    </a>
+                    <button type="button" class="btn btn-danger btn-sm delete-theater-btn" data-theater-id="@item.TheaterId">
+                        🗑 Xóa rạp
+                    </button>                   
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+<style>
+    .btn-pink-light {
+        background-color: #f8c8dc; /* Hồng nhạt */
+        color: #5c2c3d; /* Màu chữ tương phản */
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+    }
+
+        .btn-pink-light:hover {
+            background-color: #f3a6c0; /* Hồng đậm hơn khi hover */
+            color: white;
+        }
+</style>
+
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.delete-theater-btn').click(function () {
+                const theaterId = $(this).data('theater-id');
+
+                Swal.fire({
+                    title: 'Xác nhận xóa rạp',
+                    text: "Bạn có chắc muốn xóa rạp này? Tất cả phòng và suất chiếu liên quan cũng sẽ bị xóa.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Xóa',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/Theater/Delete/' + theaterId,
+                            type: 'POST',
+                            success: function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Đã xóa!',
+                                    text: 'Rạp đã được xóa thành công.',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            },
+                            error: function () {
+                                Swal.fire('Lỗi!', 'Không thể xóa rạp.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+}

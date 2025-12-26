@@ -1,0 +1,160 @@
+﻿@model CinemaManagement.Models.Theater
+@{
+    ViewData["Title"] = "Chỉnh sửa rạp";
+}
+
+<!-- Hiệu ứng đổi màu cho nút Cập nhật -->
+<style>
+    .btn-update {
+        background-color: #dc3545; /* đỏ */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+    }
+
+        .btn-update:hover,
+        .btn-update:focus {
+            background-color: black;
+            color: white;
+        }
+
+    .btn-add-room {
+        background-color: #00c6ff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+    }
+
+        .btn-add-room:hover,
+        .btn-add-room:focus {
+            background-color: #ff5f6d;
+            color: white;
+        }
+
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card shadow">
+                    <div class="card-header text-white text-center" style="background: linear-gradient(to right, #8B0000, #000000);">
+                        <h4 class="mb-0">✏️ Chỉnh sửa thông tin rạp</h4>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Edit" method="post">
+                            <input type="hidden" asp-for="TheaterId" />
+
+                            <div class="mb-3">
+                                <label asp-for="Name" class="form-label fw-bold">Tên rạp</label>
+                                <input asp-for="Name" class="form-control" placeholder="Nhập tên rạp..." />
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Location" class="form-label fw-bold">Địa điểm</label>
+                                <input asp-for="Location" class="form-control" placeholder="Nhập địa điểm..." />
+                                <span asp-validation-for="Location" class="text-danger small"></span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="submit" class="btn btn-update">
+                                    💾 Cập nhật
+                                </button>
+                                <a asp-action="CreateRoom" asp-route-theaterId="@Model.TheaterId" class="btn btn-add-room">
+                                    ➕ Thêm Phòng
+                                </a>
+
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    🔙 Quay lại
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                @if (Model.Rooms != null && Model.Rooms.Any())
+                {
+                    <div class="mt-5">
+                        <h5 class="text-primary mb-3">📋 Danh sách phòng chiếu</h5>
+                        <div class="row g-3">
+                            @foreach (var room in Model.Rooms)
+                            {
+                                <div class="col-md-6">
+                                    <div class="card border-light shadow-sm h-100">
+                                        <div class="card-body position-relative">
+                                            <h6 class="card-title mb-2 text-dark">
+                                                🎬 @room.Name
+                                            </h6>
+                                            <p class="card-text text-muted">
+                                                Giá nhân hệ số: <strong>@room.PriceMultiplier</strong>
+                                            </p>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-2 delete-room-btn"
+                                                    data-room-id="@room.RoomId" title="Xóa phòng">
+                                                🗑
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.delete-room-btn').click(function () {
+                const roomId = $(this).data('room-id');
+
+                Swal.fire({
+                    title: 'Xác nhận xóa',
+                    text: "Bạn có chắc muốn xóa phòng này không?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Xóa',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/Theater/DeleteRoom/' + roomId,
+                            type: 'POST',
+                            success: function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Đã xóa!',
+                                    text: 'Phòng đã được xóa thành công.',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            },
+                            error: function () {
+                                Swal.fire('Lỗi!', 'Không thể xóa phòng.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+}

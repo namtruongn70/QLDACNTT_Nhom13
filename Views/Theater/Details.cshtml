@@ -1,0 +1,103 @@
+﻿@model CinemaManagement.Models.Theater
+
+@{
+    ViewData["Title"] = "Chi tiết rạp";
+}
+
+<style>
+    body {
+        background-color: white;
+        color: #ffffff;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .card-custom {
+        background-color: #1a1a1a;
+        border: 1px solid #ff4d4d;
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+        margin-bottom: 30px;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+        .card-custom h2 {
+            color: #ff3333;
+            font-weight: bold;
+        }
+
+    .info-label {
+        color: #ff9999;
+    }
+
+    .room-list {
+        background-color: #2b2b2b;
+        border-radius: 8px;
+        padding: 10px;
+        border-left: 5px solid #ff3333;
+        margin-bottom: 12px;
+    }
+
+    .btn-red {
+        background-color: #ff3333;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+        .btn-red:hover {
+            background-color: #e60000;
+        }
+
+    .btn-dark-grey {
+        background-color: #333;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+        .btn-dark-grey:hover {
+            background-color: #555;
+        }
+
+    /* Razor-safe media query and animation */
+
+</style>
+
+<div class="container mt-5">
+    <div class="card-custom">
+        <h2 class="text-center mb-4">👁 Chi tiết rạp chiếu</h2>
+
+        <p><span class="info-label">🎬 Tên rạp:</span> @Model.Name</p>
+        <p><span class="info-label">📍 Địa điểm:</span> @Model.Location</p>
+
+        <h4 class="mt-4 mb-3" style="color:#ff6666;">📽️ Danh sách phòng chiếu</h4>
+
+        @if (Model.Rooms != null && Model.Rooms.Any())
+        {
+            foreach (var room in Model.Rooms)
+            {
+                <div class="room-list">
+                    <strong>@room.Name</strong><br />
+                    Giá nhân hệ số: @(room.PriceMultiplier?.ToString("0.##") ?? "Chưa có")<br />
+                    Mô tả: @room.Description
+                </div>
+            }
+        }
+        else
+        {
+            <p>⚠️ Rạp này chưa có phòng chiếu nào.</p>
+        }
+
+        <div class="d-flex justify-content-between mt-4">
+            <a asp-action="Edit" asp-route-id="@Model.TheaterId" class="btn-red">✏️ Sửa</a>
+            <a asp-action="Index" class="btn-dark-grey">🔙 Quay lại</a>
+        </div>
+    </div>
+</div>
